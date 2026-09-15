@@ -1,0 +1,40 @@
+# =============================================================================
+# 外部通信遮断（EGRESS_FIREWALL=on）のときに通信を許可する宛先。
+#
+#   - 1 行 1 ドメイン。# 以降はコメント
+#   - ワイルドカード（*.example.com）や URL は書けない
+#   - 起動時に A レコードを引き、その IPv4 アドレスへの通信だけを許可する
+#   - @github-meta は api.github.com/meta が公開する web / api / git の IP 範囲
+#   - example.com は遮断できているかの検証に使うので書かないこと
+#
+# このファイルはイメージに焼かれる（/etc/egress-firewall/allowlist.txt）。
+# 変更はイメージの再ビルドで反映される。とりあえず 1 つ足したいだけなら
+# .devcontainer/.env の EGRESS_ALLOW_DOMAINS（コンテナの作り直しで反映）。
+# =============================================================================
+
+# ---- Claude Code ------------------------------------------------------------
+# https://code.claude.com/docs/en/network-config
+api.anthropic.com
+claude.ai
+claude.com
+platform.claude.com
+downloads.claude.ai
+mcp-proxy.anthropic.com
+
+# テレメトリ / エラー報告（任意）。許可しなくても動作はする（送信が即座に拒否されるだけ）。
+# http-intake.logs.us5.datadoghq.com
+# browser-intake-us5-datadoghq.com
+
+# ---- パッケージレジストリ ---------------------------------------------------
+registry.npmjs.org
+
+# ---- GitHub（git fetch / push、API）-----------------------------------------
+@github-meta
+raw.githubusercontent.com
+objects.githubusercontent.com
+codeload.github.com
+
+# ---- VS Code（拡張機能のインストール / 更新）--------------------------------
+marketplace.visualstudio.com
+vscode.blob.core.windows.net
+update.code.visualstudio.com

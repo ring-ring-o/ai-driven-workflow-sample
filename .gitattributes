@@ -1,0 +1,6 @@
+# WSL / Windows 混在で CRLF が混入すると、シェルスクリプトと Docker ビルドが壊れる
+* text=auto eol=lf
+*.sh text eol=lf
+.devcontainer/zshrc text eol=lf
+.devcontainer/firewall/allowlist.txt text eol=lf
+*.png binary

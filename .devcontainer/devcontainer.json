@@ -1,0 +1,124 @@
+// Dev Container 仕様: https://containers.dev/implementors/json_reference/
+// =============================================================================
+// このファイルは「VS Code に固有の設定」だけを持つ。
+// コンテナそのものの定義（イメージ・ボリューム・環境変数・起動時の初期化）は
+// compose.yaml と Dockerfile にあり、VS Code を使わない人もまったく同じものを起動できる。
+//
+//   VS Code    : Ctrl+Shift+P → "Dev Containers: Reopen in Container"
+//   VS Code 無し: bash .devcontainer/init-host.sh
+//                cd .devcontainer && docker compose up -d --build
+//                docker compose exec dev bash .devcontainer/post-create.sh
+//                docker compose exec dev zsh
+//
+// Features は使わない。Features は devcontainer ランタイムがないと適用されず、
+// docker compose だけで起動した人の環境と食い違ってしまうため。
+// 同じ理由でツールの導入はすべて mise（= mise.toml）に寄せている。
+// =============================================================================
+{
+  "$schema": "https://raw.githubusercontent.com/devcontainers/spec/main/schemas/devContainer.schema.json",
+  "name": "ai-driven-workflow-sample",
+  "dockerComposeFile": "compose.yaml",
+  "service": "dev",
+  // compose.yaml の WORKSPACE_FOLDER（.env）と必ず一致させること。
+  "workspaceFolder": "/workspaces/ai-driven-workflow-sample",
+  "shutdownAction": "stopCompose",
+  // イメージの ENTRYPOINT（起動時の初期化）と compose の command をそのまま使う。
+  // true にすると VS Code が ENTRYPOINT ごと差し替え、所有権の修復と外部通信遮断が走らない。
+  "overrideCommand": false,
+  "remoteUser": "vscode",
+  // uid/gid はイメージ側（compose の build args）でホストに合わせてある。
+  // updateRemoteUserUID は VS Code / devcontainer CLI でしか働かないので、
+  // これに頼ると docker compose だけで起動した人と環境が食い違う。
+  "updateRemoteUserUID": false,
+  // ホスト（WSL）側で実行される唯一のフック。
+  // ホストの uid/gid を .devcontainer/.env に書き出し、バインドマウントの
+  // 所有者がコンテナ内のユーザーと一致するようにする。
+  "initializeCommand": "bash .devcontainer/init-host.sh",
+  // 依存解決。compose だけの利用者も同じスクリプトを手で叩く（＝環境が分岐しない）。
+  "postCreateCommand": "bash .devcontainer/post-create.sh",
+  "waitFor": "postCreateCommand",
+  "hostRequirements": {
+    "cpus": 2,
+    "memory": "4gb",
+    "storage": "16gb"
+  },
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        // ---- ハーネス ----
+        "anthropic.claude-code",
+        // ---- TypeScript（言語機能は VS Code 組み込み。ワークスペースの tsc を使わせる）----
+        "biomejs.biome",
+        "yoavbls.pretty-ts-errors",
+        // ---- 環境定義 / スクリプト ----
+        "hverlin.mise-vscode",
+        "tamasfe.even-better-toml",
+        "redhat.vscode-yaml",
+        "timonwong.shellcheck",
+        // ---- 横断 ----
+        "EditorConfig.EditorConfig",
+        "usernamehw.errorlens"
+      ],
+      "settings": {
+        "//": "----- シェル / ファイル -----",
+        "terminal.integrated.defaultProfile.linux": "zsh",
+        "terminal.integrated.profiles.linux": {
+          "zsh": {
+            "path": "/usr/bin/zsh",
+            "args": [
+              "-l"
+            ]
+          },
+          "bash": {
+            "path": "/bin/bash",
+            "icon": "terminal-bash"
+          }
+        },
+        "files.eol": "\n",
+        "files.insertFinalNewline": true,
+        "files.trimTrailingWhitespace": true,
+        "files.encoding": "utf8",
+        "editor.formatOnSave": true,
+        "//1": "----- 性能: 生成物をウォッチャと検索から外す（WSL2 で最も効く）-----",
+        "files.watcherExclude": {
+          "**/.git/objects/**": true,
+          "**/node_modules/**": true,
+          "**/dist/**": true
+        },
+        "search.exclude": {
+          "**/node_modules": true,
+          "**/dist": true,
+          "**/pnpm-lock.yaml": true,
+          "**/mise.lock": true
+        },
+        "search.useIgnoreFiles": true,
+        "//2": "----- TypeScript: エディタと CLI で同じ tsc を使う -----",
+        "typescript.tsdk": "node_modules/typescript/lib",
+        "typescript.enablePromptUseWorkspaceTsdk": true,
+        "typescript.updateImportsOnFileMove.enabled": "always",
+        "//3": "----- Biome（lint + format。設定は biome.json）-----",
+        "[typescript]": {
+          "editor.defaultFormatter": "biomejs.biome"
+        },
+        "[javascript]": {
+          "editor.defaultFormatter": "biomejs.biome"
+        },
+        "[json]": {
+          "editor.defaultFormatter": "biomejs.biome"
+        },
+        "[jsonc]": {
+          "editor.defaultFormatter": "biomejs.biome"
+        },
+        "editor.codeActionsOnSave": {
+          "source.fixAll.biome": "explicit",
+          "source.organizeImports.biome": "explicit"
+        },
+        "//4": "----- shellcheck: mise で固定した版を使う -----",
+        "shellcheck.executablePath": "/opt/mise/shims/shellcheck",
+        "//5": "----- mise: .vscode/settings.json を書き換えさせない -----",
+        "mise.enable": true,
+        "mise.configureExtensionsAutomatically": false
+      }
+    }
+  }
+}

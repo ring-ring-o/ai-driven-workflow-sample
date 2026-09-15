@@ -1,0 +1,20 @@
+# 生成物 / キャッシュ
+# pnpm の store もここ（node_modules/.pnpm-store）に入る。ホームの store はバインドマウントと
+# 別ファイルシステムでハードリンクを張れないため、pnpm が自動でワークスペース側に作る。
+node_modules/
+dist/
+*.tsbuildinfo
+coverage/
+
+# ホストの uid/gid が入るのでコミットしない（.env.example が雛形）
+.devcontainer/.env
+
+# mise のローカル上書き（個人用）
+mise.local.toml
+mise.local.lock
+
+# Claude Code の個人設定（チームで共有する .claude/settings.json はコミットする）
+.claude/settings.local.json
+
+# WSL で Windows からコピーしたときに付く
+*:Zone.Identifier

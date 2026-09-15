@@ -1,0 +1,55 @@
+# =============================================================================
+# 開発環境のバージョン定義 — このリポジトリで唯一の情報源。
+# -----------------------------------------------------------------------------
+# ここだけ書き換えれば、devcontainer でも素のマシンでも CI でも同じ版が入る。
+#
+#   devcontainer : Dockerfile がこのファイルと mise.lock を COPY して
+#                  `mise install --locked` する。Dockerfile には版番号を書かない。
+#   素のマシン   : curl https://mise.run | sh  →  mise install
+#   CI           : jdx/mise-action がこのファイルを読む
+#
+# 「同じ版」ではなく「同じバイナリ」を保証するのは mise.lock（URL + sha256）。
+# [tools] はメジャー版までしか書かず、実際の版は mise.lock が固定する。
+# メジャーをまたぐ更新（例: Claude Code 2 → 3）はここを書き換えない限り起きない。
+#
+#   版を上げる   : mise lock --bump [tool]   # 範囲内の最新へ lock を進める
+#                  mise install              # 入れる
+#                  mise run pins:sync        # package.json を追従させる
+#   整合性の確認 : mise run pins:check
+# =============================================================================
+
+min_version = "2026.9.0"
+
+[tools]
+# ---- 言語ランタイム / パッケージマネージャ ----------------------------------
+# サンプルアプリはすべて TypeScript。Node は Active LTS に揃える。
+node = "24"
+pnpm = "12"
+
+# ---- ハーネス ---------------------------------------------------------------
+# Claude Code（公式ネイティブバイナリ。aqua:anthropics/claude-code）。
+# このリポジトリはハーネスの挙動そのものを検証対象にするので、
+# コンテナ専用ツールとして分けず、プロジェクトの定義としてここで固定する。
+# 自己更新はコンテナ側で止めてある（DISABLE_AUTOUPDATER=1）。
+claude = "2"
+
+# ---- 補助 -------------------------------------------------------------------
+# .devcontainer/*.sh の静的解析（mise run lint:sh / VS Code 拡張が同じ版を使う）
+shellcheck = "0.11"
+
+[env]
+# ここに書いた環境変数は mise 経由（シム / mise run / mise activate）で必ず効く。
+# コンテナ固有の値（キャッシュ位置、Claude Code の設定ディレクトリなど）は
+# Dockerfile 側に置き、ここには書かない。素のマシンで動かなくなるため。
+
+# pnpm で入れた CLI（tsc / biome）を `pnpm exec` なしで叩けるようにする。
+# claude もシム経由で起動されるので、Claude Code が実行するコマンドにも効く。
+_.path = ["{{config_root}}/node_modules/.bin"]
+
+[settings]
+# mise.lock を有効化（node / pnpm / claude / shellcheck の URL と sha256 を固定）。
+lockfile = true
+
+[task_config]
+# タスク定義は別ファイル。このファイルは「バージョンの定義」だけに保つ。
+includes = ["mise.tasks.toml"]

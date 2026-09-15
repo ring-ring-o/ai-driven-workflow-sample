@@ -1,0 +1,79 @@
+# =============================================================================
+# VS Code を使う場合も使わない場合も、起動するのはこの compose ファイル。
+# devcontainer.json は dockerComposeFile でこれを指しているだけなので、
+# 「VS Code で開いた環境」と「docker compose で立てた環境」が同一物になる。
+#
+#   VS Code を使わない場合:
+#     bash .devcontainer/init-host.sh      # 初回のみ（uid/gid を .env に書く）
+#     cd .devcontainer && docker compose up -d --build
+#     docker compose exec dev bash .devcontainer/post-create.sh   # 初回のみ
+#     docker compose exec dev zsh
+#
+# 可変値は隣の .env にある（uid/gid・ワークスペースのパス・外部通信遮断など）。
+# =============================================================================
+name: ${COMPOSE_PROJECT_NAME:-ai-driven-workflow-sample}
+
+services:
+  dev:
+    build:
+      context: ..
+      dockerfile: .devcontainer/Dockerfile
+      target: dev
+      args:
+        DEBIAN_TAG: ${DEBIAN_TAG:-trixie}
+        MISE_VERSION: ${MISE_VERSION:-latest}
+        USERNAME: ${DEV_USER:-vscode}
+        USER_UID: ${USER_UID:-1000}
+        USER_GID: ${USER_GID:-1000}
+        TZ: ${TZ:-Asia/Tokyo}
+    image: ${COMPOSE_PROJECT_NAME:-ai-driven-workflow-sample}-dev:latest
+
+    # devcontainer.json の workspaceFolder と必ず一致させること。
+    working_dir: ${WORKSPACE_FOLDER:-/workspaces/ai-driven-workflow-sample}
+    # イメージの ENTRYPOINT（devcontainer-entrypoint）がこの前に初期化を済ませる。
+    command: ["sleep", "infinity"]
+
+    # PID 1 をちゃんとしたものにする（ゾンビプロセスの回収）。
+    # claude -p のループや MCP サーバーなど子プロセスを大量に作るので効く。
+    init: true
+
+    # 外部通信遮断（iptables / ipset）に必要。遮断がオフでも常に付けている。
+    #   - compose では環境変数で cap_add を出し分けられず、ファイルを分けると
+    #     devcontainer.json 側と二重に切り替える必要が出るため
+    #   - どちらもコンテナ自身のネットワーク名前空間にしか効かず、ホストや
+    #     他のコンテナのネットワークは触れない
+    #   - 非 root ユーザーには効かない。遮断を有効にしたときは sudo も取り上げる
+    # デバッガ用の SYS_PTRACE / seccomp:unconfined は付けない（Node の inspector には不要）。
+    cap_add:
+      - NET_ADMIN
+      - NET_RAW
+
+    volumes:
+      # ソースはバインドマウント。リポジトリは WSL のネイティブ FS（/home/...）に
+      # 置くこと。/mnt/c 配下だと 9p 経由になり数十倍遅く、権限も正しく扱えない。
+      - ..:${WORKSPACE_FOLDER:-/workspaces/ai-driven-workflow-sample}
+
+      # Claude Code の認証情報・設定・セッション履歴。コンテナを作り直しても残る。
+      # CLAUDE_CONFIG_DIR（Dockerfile）で ~/.claude.json もこの中に寄せてある。
+      - claude:/home/${DEV_USER:-vscode}/.claude
+      # シェル履歴
+      - command-history:/home/${DEV_USER:-vscode}/.commandhistory
+      # VS Code Server 本体（再インストールを避ける。CLI 起動時は未使用）
+      - vscode-server:/home/${DEV_USER:-vscode}/.vscode-server
+      # ※ マウント先を増やしたら Dockerfile の install -d と
+      #   devcontainer-init.sh の所有権修復の対象にも足すこと。
+
+    environment:
+      # compose の environment はコンテナ自体に付くので、VS Code から入っても
+      # docker compose exec でも同じ値が見える。
+      # （devcontainer.json の containerEnv / remoteEnv は片方にしか効かないので使わない）
+      WORKSPACE_FOLDER: ${WORKSPACE_FOLDER:-/workspaces/ai-driven-workflow-sample}
+      # 起動時に devcontainer-init が読む。変更はコンテナの作り直しで反映される。
+      # コンテナ内から値を変えて呼び直しても、遮断を緩める方向には働かない。
+      EGRESS_FIREWALL: ${EGRESS_FIREWALL:-off}
+      EGRESS_ALLOW_DOMAINS: ${EGRESS_ALLOW_DOMAINS:-}
+
+volumes:
+  claude:
+  command-history:
+  vscode-server:

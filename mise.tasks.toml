@@ -1,0 +1,71 @@
+# =============================================================================
+# タスク定義（Makefile の置き換え）。
+#   mise tasks          一覧
+#   mise run check      型検査 + lint + バージョン整合性（エージェントのループの関門）
+# シェル統合をしていなくても `mise run` は動く（docker compose exec からでも同じ）。
+#
+# ★ 書式に注意 ★
+# このファイルは mise.toml の [task_config] includes から読まれる「タスクファイル」。
+# トップレベルのテーブル名がそのままタスク名になるので、[tasks.xxx] とは書かない。
+# =============================================================================
+
+# ------------------------------------------------------------------ 依存解決
+[deps]
+description = "pnpm install（lock ファイルどおりに入れる）"
+dir = "{{config_root}}"
+run = "pnpm install --frozen-lockfile"
+
+# ------------------------------------------------------------ 検査（関門）
+[typecheck]
+description = "tsc --noEmit"
+dir = "{{config_root}}"
+run = "pnpm run typecheck"
+
+["lint:ts"]
+description = "Biome（lint + format の検査。書き換えはしない）"
+dir = "{{config_root}}"
+run = "pnpm run lint"
+
+["lint:sh"]
+description = "shellcheck（.devcontainer 配下のシェルスクリプト）"
+dir = "{{config_root}}"
+run = "shellcheck .devcontainer/*.sh .devcontainer/firewall/*.sh"
+
+[lint]
+description = "lint:ts + lint:sh"
+depends = ["lint:ts", "lint:sh"]
+
+[check]
+description = "型検査 + lint + バージョン整合性（コミット前 / ループの終了条件に使う）"
+depends = ["typecheck", "lint", "pins:check"]
+
+[fmt]
+description = "Biome で整形・自動修正する"
+dir = "{{config_root}}"
+run = "pnpm run fmt"
+
+# --------------------------------------------------- バージョン整合性 / 診断
+["pins:sync"]
+description = "mise.toml の解決結果で package.json（packageManager / @types/node）を書き換える"
+dir = "{{config_root}}"
+run = "node scripts/pins.ts sync"
+
+["pins:check"]
+description = "package.json が mise.toml とズレていないか検証する"
+dir = "{{config_root}}"
+run = "node scripts/pins.ts check"
+
+[doctor]
+description = "ツールチェーンとコンテナの状態（uid / Claude Code / 外部通信遮断）を表示する"
+dir = "{{config_root}}"
+run = "node scripts/doctor.ts"
+
+# -------------------------------------------------------- 外部通信遮断
+# 既定ではオフ。有効化の手順と注意は docs/egress-firewall.md。
+["firewall:status"]
+description = "外部通信遮断の状態と疎通を表示する"
+run = "egress-firewall status"
+
+["firewall:refresh"]
+description = "許可済みドメインの IP を引き直して追加する（CDN の IP 変動対策。遮断中のみ）"
+run = "sudo -n egress-firewall refresh"
