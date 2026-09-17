@@ -77,6 +77,7 @@ scripts/                     補助スクリプト（TypeScript を Node で直�
 docs/
   devcontainer.md            環境の設計・WSL の権限・トラブルシュート
   egress-firewall.md         外部通信遮断の使い方と Tips
+  branching.md               ブランチ戦略（master は常に緑・短命ブランチ・--no-ff マージ・loop/ ブランチ）
 ```
 
 ## ドキュメント
