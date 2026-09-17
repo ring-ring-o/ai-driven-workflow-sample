@@ -75,6 +75,7 @@ const binaries: [string, string[]][] = [
   ["node", ["--version"]],
   ["pnpm", ["--version"]],
   ["claude", ["--version"]],
+  ["gh", ["--version"]],
   ["tsc", ["--version"]],
   ["biome", ["--version"]],
 ];

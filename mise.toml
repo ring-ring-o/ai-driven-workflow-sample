@@ -34,6 +34,10 @@ pnpm = "12"
 claude = "2"
 
 # ---- 補助 -------------------------------------------------------------------
+# GitHub CLI（PR の作成・レビュー・マージ）。ブランチ戦略（docs/branching.md）の
+# 「マージは --no-ff」を PR からも守るために、squash ではなく merge を明示して使う。
+gh = "2"
+
 # .devcontainer/*.sh の静的解析（mise run lint:sh / VS Code 拡張が同じ版を使う）
 shellcheck = "0.11"
 
