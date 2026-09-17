@@ -78,6 +78,9 @@ docs/
   devcontainer.md            環境の設計・WSL の権限・トラブルシュート
   egress-firewall.md         外部通信遮断の使い方と Tips
   branching.md               ブランチ戦略（master は常に緑・短命ブランチ・--no-ff マージ・loop/ ブランチ）
+  research-loop-harness-engineering.md
+                             調査: ループ/ハーネスエンジニアリングの現在地と「ハーネスは負債」論の検証
+  loop-architecture.md       設計: 捨てる前提のループエンジニアリング（推奨アーキテクチャ）
 ```
 
 ## ドキュメント
